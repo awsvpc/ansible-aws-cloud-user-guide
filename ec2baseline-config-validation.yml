@@ -1,0 +1,141 @@
+Here are the remaining tasks added to the playbook:
+
+yaml
+Copy code
+---
+- name: Perform System Checks
+  hosts: localhost
+  gather_facts: no
+  vars:
+    failed_tests: []
+
+  tasks:
+    - name: Task 1 - Check /var/log/launch.txt for "Sending notification"
+      shell: cat /var/log/launch.txt | grep "Sending notification"
+      register: launch_log
+      retries: 15
+      delay: 60
+      until: launch_log.rc == 0
+      ignore_errors: yes
+      failed_when: launch_log.rc != 0
+      changed_when: false
+      when: launch_log.rc != 0
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 1: /var/log/launch.txt does not contain \"Sending notification\"'] }}"
+
+    - name: Task 2 - Check if package ds_agent exists
+      command: dpkg -l | grep ds_agent
+      register: ds_agent_pkg
+      failed_when: ds_agent_pkg.rc != 0
+      ignore_errors: yes
+      changed_when: false
+      when: ansible_distribution == 'Ubuntu'
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 2: Package ds_agent does not exist'] }}"
+
+    - name: Task 3 - Check if ds_agent service exists and is running
+      service_facts:
+      register: services
+      ignore_errors: yes
+      changed_when: false
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 3: Service ds_agent does not exist or is not running'] }}"
+
+    - name: Task 4 - Check if newrelic-infra package exists
+      command: rpm -q newrelic-infra
+      register: newrelic_infra_pkg
+      failed_when: newrelic_infra_pkg.rc != 0
+      ignore_errors: yes
+      changed_when: false
+      when: ansible_distribution == 'CentOS'
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 4: Package newrelic-infra does not exist'] }}"
+
+    - name: Task 5 - Check if newrelic.repo exists
+      stat:
+        path: /etc/yum.repos.d/newrelic.repo
+      register: newrelic_repo
+      failed_when: newrelic_repo.stat.exists == False
+      ignore_errors: yes
+      changed_when: false
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 5: Repository newrelic.repo does not exist'] }}"
+
+    - name: Task 6 - Check for pending updates
+      command: dnf check-update --releasever=latest
+      register: dnf_updates
+      changed_when: false
+      failed_when: dnf_updates.rc != 0
+      ignore_errors: yes
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 6: Pending updates found'] }}"
+
+    - name: Task 7 - Check if second interface exists
+      command: ip addr show dev eth1
+      register: eth1_interface
+      changed_when: false
+      failed_when: eth1_interface.rc != 0
+      ignore_errors: yes
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 7: Second interface eth1 does not exist'] }}"
+
+    - name: Task 8 - Check if host is domain joined
+      command: adcli test -v -D domainname.org
+      register: adcli_result
+      changed_when: false
+      failed_when: "'Successfully validated join to domain domainname.org' not in adcli_result.stdout"
+      ignore_errors: yes
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 8: Host is not domain joined'] }}"
+
+    - name: Task 9 - Check if /etc/krb5.conf file exists
+      stat:
+        path: /etc/krb5.conf
+      register: krb5_conf
+      changed_when: false
+      failed_when: krb5_conf.stat.exists == False
+      ignore_errors: yes
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 9: /etc/krb5.conf does not exist'] }}"
+
+    - name: Task 10 - Check if chrony is server 169.254.169.254
+      command: chronyc sources
+      register: chrony_sources
+      changed_when: false
+      failed_when: "'169.254.169.254' not in chrony_sources.stdout"
+      ignore_errors: yes
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 10: Chrony is not synchronized with server 169.254.169.254'] }}"
+
+    - name: Task 11 - Check if sssd service is running
+      service_facts:
+      register: services
+      ignore_errors: yes
+      changed_when: false
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 11: Service sssd is not running'] }}"
+
+    - name: Task 12 - Check if ssm_agent service is running
+      service_facts:
+      register: services
+      ignore_errors: yes
+      changed_when: false
+      rescue:
+        - set_fact:
+            failed_tests: "{{ failed_tests + ['Task 12: Service ssm_agent is not running'] }}"
+
+  handlers:
+    - name: Print Failed Tests
+      debug:
+        msg: "Failed tests: {{ failed_tests }}"
