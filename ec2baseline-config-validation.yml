@@ -1,7 +1,6 @@
 Here are the remaining tasks added to the playbook:
 
-yaml
-Copy code
+
 ---
 - name: Perform System Checks
   hosts: localhost
