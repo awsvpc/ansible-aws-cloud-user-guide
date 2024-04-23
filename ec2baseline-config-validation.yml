@@ -1,6 +1,3 @@
-Here are the remaining tasks added to the playbook:
-
-
 ---
 - name: Perform System Checks
   hosts: localhost
