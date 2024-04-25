@@ -1,0 +1,44 @@
+---
+- name: Configure nftables on Amazon Linux 2023
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install nftables
+      yum:
+        name: nftables
+        state: present
+
+    - name: Enable and start nftables service
+      service:
+        name: nftables
+        state: started
+        enabled: yes
+
+    - name: Create nftables configuration file
+      copy:
+        content: |
+          table inet filter {
+              chain input {
+                  type filter hook input priority 0;
+                  policy drop;
+
+                  # Allow established/related connections
+                  ct state { established, related } accept;
+
+                  # Allow loopback interface traffic
+                  iifname "lo" accept;
+
+                  # Allow ICMPv6 traffic (optional)
+                  ip protocol icmpv6 accept;
+
+                  # Allow TCP and UDP traffic for IPv4 and IPv6
+                  ip protocol tcp accept;
+                  ip protocol udp accept;
+                  ip6 protocol tcp accept;
+                  ip6 protocol udp accept;
+              }
+          }
+        dest: /etc/sysconfig/nftables.conf
+
+    - name: Apply nftables configuration
+      command: nft -f /etc/sysconfig/nftables.conf
