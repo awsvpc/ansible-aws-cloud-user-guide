@@ -1,0 +1,20 @@
+---
+- name: Copy configuration file and create log file
+  hosts: all
+  become: yes
+  tasks:
+    - name: Copy krb5.conf.j2 to /var/tmp/krb5.conf.bkp
+      template:
+        src: "{{ playbook_dir }}/templates/krb5.conf.j2"
+        dest: /var/tmp/krb5.conf.bkp
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create an empty log file /var/log/launch.log
+      file:
+        path: /var/log/launch.log
+        state: touch
+        owner: root
+        group: root
+        mode: '0600'
