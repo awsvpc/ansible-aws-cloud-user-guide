@@ -1,0 +1,27 @@
+Here's an Ansible playbook to perform a dnf update and reboot:
+
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Update system packages
+      dnf:
+        name: '*'
+        state: latest
+
+    - name: Check if reboot is required
+      command: needs-restarting
+      register: reboot_required
+      ignore_errors: true
+
+    - name: Reboot the system (if required)
+      ansible.builtin.reboot:
+        when: reboot_required.rc == 0
+        pre_reboot_delay: 30
+      register: reboot
+
+  handlers:
+    - name: Reboot notification
+      slack_channel: "#server-updates"
+      text: "Server {{ inventory_hostname }} has been rebooted after updates."
+      when: reboot.rebooted
