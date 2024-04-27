@@ -1,0 +1,20 @@
+---
+- name: Copy Jinja2 template to remote server
+  hosts: all  # Replace with your server group or specific hosts
+  become: true  # Requires root or sudo privileges
+
+  tasks:
+    - name: Copy Jinja2 template
+      template:
+        src: templates/{{ template_name }}.j2  # Replace with your template path
+        dest: /path/to/destination/{{ target_name }}  # Replace with destination path
+      vars:
+        template_name: your_template_name  # Replace with actual template name
+        target_name: your_target_name  # Replace with desired filename on remote server
+
+    - name: Ensure file permissions (optional)
+      file:
+        path: /path/to/destination/{{ target_name }}
+        mode: 0644  # Adjust permissions as needed
+        owner: your_username  # Replace with desired owner
+        group: your_group  # Replace with desired group
