@@ -1,0 +1,60 @@
+---
+- name: Validate EC2 instance
+  hosts: your_ec2_instance
+  gather_facts: yes
+  tasks:
+    - name: Verify presence of package1
+      stat:
+        path: /path/to/package1
+      register: package1_status
+      failed_when: false
+      changed_when: false
+
+    - name: Check if service1 is running
+      service:
+        name: service1
+        state: started
+      register: service1_status
+      failed_when: false
+      changed_when: false
+
+    - name: Check if service2 is masked
+      command: systemctl is-enabled service2
+      register: service2_status
+      failed_when: false
+      changed_when: false
+
+    - name: Verify that package2 is not installed
+      command: dpkg -l | grep package2
+      register: package2_status
+      failed_when: false
+      changed_when: false
+
+    - name: Check if PermitRootLogin is set to 'No' in /etc/sshd_config
+      shell: cat /etc/sshd_config | grep "PermitRootLogin\s*no"
+      register: sshd_config_status
+      failed_when: false
+      changed_when: false
+
+    - name: Verify if nftables is installed
+      command: dpkg -l | grep nftables
+      register: nftables_status
+      failed_when: false
+      changed_when: false
+
+  post_tasks:
+    - name: List failed tasks
+      debug:
+        msg: |
+          The following tasks failed:
+          {% for item in ansible_play_batch %}
+          {% if item.failed %}
+          - Task {{ item.task.name }}: {{ item.task.action }}
+          {% endif %}
+          {% endfor %}
+      when: ansible_failed_task is defined
+
+    - name: Print Host is compliant
+      debug:
+        msg: "Host is compliant"
+      when: not (tasks_status | select('failed')) | list | length > 0
