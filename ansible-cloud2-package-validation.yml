@@ -57,4 +57,214 @@
     - name: Print Host is compliant
       debug:
         msg: "Host is compliant"
-      when: not (tasks_status | select('failed')) | list | length > 0
+      ---
+- name: Validate EC2 instance
+  hosts: your_ec2_instance
+  gather_facts: yes
+  tasks:
+    - name: Verify presence of package1
+      stat:
+        path: /path/to/package1
+      register: package1_status
+      ignore_errors: yes
+
+    - name: Check if service1 is running
+      service:
+        name: service1
+        state: started
+      register: service1_status
+      ignore_errors: yes
+
+    - name: Check if service2 is masked
+      command: systemctl is-enabled service2
+      register: service2_status
+      ignore_errors: yes
+
+    - name: Verify that package2 is not installed
+      command: dpkg -l | grep package2
+      register: package2_status
+      ignore_errors: yes
+
+    - name: Check if PermitRootLogin is set to 'No' in /etc/sshd_config
+      shell: cat /etc/sshd_config | grep "PermitRootLogin\s*no"
+      register: sshd_config_status
+      ignore_errors: yes
+
+    - name: Verify if nftables is installed
+      command: dpkg -l | grep nftables
+      register: nftables_status
+      ignore_errors: yes
+
+  post_tasks:
+    - name: Calculate failed count
+      set_fact:
+        failed_tasks_count: "{{ [package1_status, service1_status, service2_status, package2_status, sshd_config_status, nftables_status] | map(attribute='failed') | select('boolean') | list | length }}"
+
+    - name: Generate list of failed tasks
+      set_fact:
+        failed_tasks_list: |
+          {% set tasks_list = [] %}
+          {% for task_status in [package1_status, service1_status, service2_status, package2_status, sshd_config_status, nftables_status] %}
+          {% if task_status.failed %}
+          {% set _ = tasks_list.append('Task: ' ~ task_status.item.name) %}
+          {% endif %}
+          {% endfor %}
+          {{ tasks_list }}
+
+    - name: Print list of failed tasks
+      debug:
+        msg: |
+          The following {{ failed_tasks_count }} tasks failed:
+          {{ failed_tasks_list | join('\n') }}
+
+    - name: Print Host is compliant
+      debug:
+        msg: "Host is compliant"
+      when: failed_tasks_count == 0
+
+>>>>>>>>>>>>>>>>>>
+
+---
+- name: Validate EC2 instance
+  hosts: your_ec2_instance
+  gather_facts: yes
+  tasks:
+    - name: Verify presence of package1
+      stat:
+        path: /path/to/package1
+      register: package1_status
+      ignore_errors: yes
+
+    - name: Check if service1 is running
+      service:
+        name: service1
+        state: started
+      register: service1_status
+      ignore_errors: yes
+
+    - name: Check if service2 is masked
+      command: systemctl is-enabled service2
+      register: service2_status
+      ignore_errors: yes
+
+    - name: Verify that package2 is not installed
+      command: dpkg -l | grep package2
+      register: package2_status
+      ignore_errors: yes
+
+    - name: Check if PermitRootLogin is set to 'No' in /etc/sshd_config
+      shell: cat /etc/sshd_config | grep "PermitRootLogin\s*no"
+      register: sshd_config_status
+      ignore_errors: yes
+
+    - name: Verify if nftables is installed
+      command: dpkg -l | grep nftables
+      register: nftables_status
+      ignore_errors: yes
+
+  post_tasks:
+    - name: Calculate failed count
+      set_fact:
+        failed_tasks_count: "{{ [package1_status, service1_status, service2_status, package2_status, sshd_config_status, nftables_status] | map(attribute='failed') | select('boolean') | list | length }}"
+
+    - name: Generate list of failed tasks
+      set_fact:
+        failed_tasks_list: |
+          {% set tasks_list = [] %}
+          {% for task_status in [package1_status, service1_status, service2_status, package2_status, sshd_config_status, nftables_status] %}
+          {% if task_status.failed %}
+          {% set _ = tasks_list.append('Task: ' ~ task_status.item.name) %}
+          {% endif %}
+          {% endfor %}
+          {{ tasks_list }}
+
+    - name: Print list of failed tasks
+      debug:
+        msg: |
+          The following {{ failed_tasks_count }} tasks failed:
+          {{ failed_tasks_list | join('\n') }}
+
+    - name: Print Host is compliant
+      debug:
+        msg: "Host is compliant"
+      when: failed_tasks_count == 0
+
+>>>>>>>>>>>>>>>>>>>>>>>
+#method 3:
+---
+- name: Validate EC2 instance
+  hosts: your_ec2_instance
+  gather_facts: yes
+  tasks:
+    - name: Verify presence of package1
+      stat:
+        path: /path/to/package1
+      register: package1_status
+      ignore_errors: yes
+
+    - name: Check if service1 is running
+      service:
+        name: service1
+        state: started
+      register: service1_status
+      ignore_errors: yes
+
+    - name: Check if service2 is masked
+      command: systemctl is-enabled service2
+      register: service2_status
+      ignore_errors: yes
+
+    - name: Verify that package2 is not installed
+      command: dpkg -l | grep package2
+      register: package2_status
+      ignore_errors: yes
+
+    - name: Check if PermitRootLogin is set to 'No' in /etc/sshd_config
+      shell: cat /etc/sshd_config | grep "PermitRootLogin\s*no"
+      register: sshd_config_status
+      ignore_errors: yes
+
+    - name: Verify if nftables is installed
+      command: dpkg -l | grep nftables
+      register: nftables_status
+      ignore_errors: yes
+
+  post_tasks:
+    - name: Calculate failed count
+      set_fact:
+        failed_tasks_count: "{{ [package1_status, service1_status, service2_status, package2_status, sshd_config_status, nftables_status] | map(attribute='failed') | select('boolean') | list | length }}"
+
+    - name: List failed tasks
+      debug:
+        msg: |
+          The following {{ failed_tasks_count }} tasks failed:
+          {% if package1_status.failed %}
+          - Task: Verify presence of package1
+          {% endif %}
+          {% if service1_status.failed %}
+          - Task: Check if service1 is running
+          {% endif %}
+          {% if service2_status.failed %}
+          - Task: Check if service2 is masked
+          {% endif %}
+          {% if package2_status.failed %}
+          - Task: Verify that package2 is not installed
+          {% endif %}
+          {% if sshd_config_status.failed %}
+          - Task: Check if PermitRootLogin is set to 'No' in /etc/sshd_config
+          {% endif %}
+          {% if nftables_status.failed %}
+          - Task: Verify if nftables is installed
+          {% endif %}
+      when: failed_tasks_count > 0
+
+    - name: Print Host is compliant
+      debug:
+        msg: "Host is compliant"
+      when: failed_tasks_count == 0
+
+    - name: Set failed status if there are failed tasks
+      fail:
+        msg: "There are failed tasks"
+      when: failed_tasks_count > 0
+
