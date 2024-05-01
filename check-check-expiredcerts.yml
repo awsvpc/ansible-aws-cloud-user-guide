@@ -1,0 +1,25 @@
+---
+- name: Check certificate expiration
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Get list of certificates
+      find:
+        paths: /etc/pki/anchors
+        patterns: '*.pem'
+        file_type: file
+      register: cert_files
+
+    - name: Check certificate expiration
+      command: "openssl x509 -checkend 0 -noout -in {{ item.path }}"
+      register: cert_expiry
+      changed_when: false
+      failed_when: cert_expiry.rc != 0
+      with_items: "{{ cert_files.files }}"
+      ignore_errors: true
+
+    - name: Fail if any certificate is expired
+      fail:
+        msg: "Certificate {{ item.path }} is expired"
+      with_items: "{{ cert_expiry.results }}"
+      when: item.rc != 0
