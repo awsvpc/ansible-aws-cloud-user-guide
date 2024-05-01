@@ -1,0 +1,41 @@
+---
+- name: Get EC2 Instance Subnet and Tier using IMDSv2
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Get IMDSv2 token
+      uri:
+        url: "http://169.254.169.254/latest/api/token"
+        method: GET
+        headers:
+          X-aws-ec2-metadata-token-ttl-seconds: "60"
+        status_code: 200
+        register: token_response
+      environment:
+        AWS_METADATA_SERVICE_TIMEOUT: "5"
+
+    - name: Retrieve subnet ID
+      uri:
+        url: "http://169.254.169.254/latest/meta-data/network/interfaces/macs/{{ ansible_default_ipv4.mac_address }}/subnet-id"
+        method: GET
+        headers:
+          X-aws-ec2-metadata-token: "{{ token_response.json.content }}"
+        status_code: 200
+        register: subnet_response
+      environment:
+        AWS_METADATA_SERVICE_TIMEOUT: "5"
+
+    - name: Retrieve subnet Tier tag value
+      uri:
+        url: "http://169.254.169.254/latest/meta-data/network/interfaces/macs/{{ ansible_default_ipv4.mac_address }}/subnet-attributes/subnet_tag_tier"
+        method: GET
+        headers:
+          X-aws-ec2-metadata-token: "{{ token_response.json.content }}"
+        status_code: 200
+        register: tier_tag_response
+      environment:
+        AWS_METADATA_SERVICE_TIMEOUT: "5"
+
+    - name: Display subnet ID and Tier tag value
+      debug:
+        msg: "Subnet ID: {{ subnet_response.json.content }}, Tier: {{ tier_tag_response.json.content }}"
