@@ -1,0 +1,77 @@
+YAML
+---
+- hosts: ec2_instances  # Replace with your EC2 instance group
+  become: true
+  gather_facts: true
+  collections:
+    - community.general
+
+  tasks:
+    - name: Verify package1 is installed
+      package:
+        name: package1
+        state: present
+      register: package1_check
+      failed_when: package1_check.rc != 0
+
+    - name: Check if service1 is running
+      service:
+        name: service1
+        state: started
+      register: service1_check
+      failed_when: service1_check.state != "running"
+
+    - name: Check if service2 is masked
+      service:
+        name: service2
+        state: masked
+      register: service2_check
+      failed_when: service2_check.state != "masked"
+
+    - name: Verify package2 is not installed
+      package:
+        name: package2
+        state: absent
+      register: package2_check
+      failed_when: package2_check.rc == 0
+
+    - name: Check if PermitRootLogin is set to 'No'
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin No"
+        state: present
+      register: permit_root_login_check
+      failed_when: permit_root_login_check.changed
+
+    - name: Verify nftables is installed
+      package:
+        name: nftables
+        state: present
+      register: nftables_check
+      failed_when: nftables_check.rc != 0
+
+  # Handle task failures
+  when: inventory_hostname not in groupvars['all']['failed_hosts']  # Skip already failed hosts
+
+  tags:
+    - ec2_validation
+
+  vars:
+    failed_hosts: []
+
+  post_task:
+    - name: Report failed tasks
+      set_fact:
+        failed_hosts: "{{ failed_hosts + [inventory_hostname] }}"
+      when: ansible_failed_task is defined
+
+    - name: Print compliance message
+      debug:
+        msg: "Host is compliant"
+      when: not failed_hosts
+
+    - name: Print failed tasks list
+      debug:
+        msg: "Failed tasks: {{ failed_hosts }}"
+      when: failed_hosts
